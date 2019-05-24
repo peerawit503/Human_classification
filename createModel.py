@@ -44,7 +44,7 @@ def train(train_dir, model_save_path=None, n_neighbors=None, knn_algo='ball_tree
 
                 # Loop through each training image for the current person
                 for img_path in image_files_in_folder(os.path.join(train_dir, class_dir)):
-                 
+                    print(img_path)
                     image_np = face_recognition.load_image_file(img_path)
                     # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                     image_np_expanded = np.expand_dims(image_np, axis=0)
@@ -69,14 +69,14 @@ def train(train_dir, model_save_path=None, n_neighbors=None, knn_algo='ball_tree
                     for i in range(len(boxes[0])):
                         if person_classes[i] == 1 and final_score[i] > 0.5:
                             position = boxes[0][i]
-                            face_bounding_boxes = (int(position[1]*im_width), int(position[3]*im_width), int(position[0]*im_height), int(position[2]*im_height))
+                            face_bounding_boxes = (int(position[0]*im_height), int(position[3]*im_width), int(position[2]*im_height), int(position[1]*im_width))
                             xx = []
                             xx.append(face_bounding_boxes)
                             # print(xx)
                             # Add face encoding for current image to the training set
                             X.append(face_recognition.face_encodings(image_np, known_face_locations=xx)[0])
                             y.append(class_dir)
-                            print(X)
+                           
 
     # Determine how many neighbors to use for weighting in the KNN classifier
     if n_neighbors is None:
@@ -168,49 +168,115 @@ detect = True
 detect_delay = 10
 
 if __name__ == "__main__":
+    video_capture = cv2.VideoCapture("video/8.mp4")
     # video_capture = cv2.VideoCapture(0)
-
     print("Training KNN classifier...")
     classifier = train("data/train", model_save_path="trained_knn_model.clf", n_neighbors=2)
     print("Training complete!")
 
-#     knn_clf=None
-#     model_path="trained_knn_model.clf"
-#     distance_threshold=0.45
-#     while True:
-        
-# #        ret,X_img = video_capture.read()
-# #        cv2.imshow('Display',X_img)
+    knn_clf=None
+    model_path="trained_knn_model.clf"
+    distance_threshold=0.45
+    NUM_CLASSES = 1
+    MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
 
-#         ret,X_img = video_capture.read()
-#         if knn_clf is None and model_path is None:
-#             raise Exception("Must supply knn classifier either thourgh knn_clf or model_path")
-#         knn_clf=None
-#         # Load a trained KNN model (if one was passed in)
-#         if knn_clf is None:
-#             with open(model_path, 'rb') as f:
-#                 knn_clf = pickle.load(f)
+    # PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
+    PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
 
+    # List of the strings that is used to add correct label for each box.
+    PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map2.pbtxt')
+    detection_graph = tf.Graph()
+    with detection_graph.as_default():
+        od_graph_def = tf.GraphDef()
+        with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+            serialized_graph = fid.read()
+            od_graph_def.ParseFromString(serialized_graph)
+            tf.import_graph_def(od_graph_def, name='')
+    label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
+    categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
+    category_index = label_map_util.create_category_index(categories)
+    with detection_graph.as_default():
+        with tf.Session(graph=detection_graph) as sess:
+            while True:
+                
+                ret,X_img = video_capture.read()
+                cv2.imshow('Display',X_img)
 
-#         X_face_locations = face_recognition.face_locations(X_img)
-#         if len(X_face_locations) != 0:
-#             faces_encodings = face_recognition.face_encodings(X_img,known_face_locations=X_face_locations)
-#             closest_distances = knn_clf.kneighbors(faces_encodings, n_neighbors=2)
-#             are_matches = [closest_distances[0][i][0] <= distance_threshold for i in range(len(X_face_locations))]
-#             predictions = [(pred, loc) if rec else ("unknown", loc) for pred, loc, rec in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches)]
-#             for name, (top, right, bottom, left) in predictions:
-#                 if name != "unknow" and detect:
-#                     detect = False
-#                     detect_delay = 5
-#                     print("beep")
-#                 elif name == "unknow":
-#                     recount()
-#                 cv2.rectangle(X_img,(left, top),(right, bottom),(0,255,0),3)
-#                 cv2.rectangle(X_img,(left, bottom - 25),(right, bottom),(0,255,0),3)
-#                 cv2.putText(X_img,name,( left + 6, bottom - 8  ) ,cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA )
-#         else:
-#             recount()
-#         cv2.imshow('Display',X_img)
-#         if cv2.waitKey(1) & 0xFF == ord('q'):
-#             break
+                ret,X_img = video_capture.read()
+                if knn_clf is None and model_path is None:
+                    raise Exception("Must supply knn classifier either thourgh knn_clf or model_path")
+                knn_clf=None
+                # Load a trained KNN model (if one was passed in)
+                if knn_clf is None:
+                    with open(model_path, 'rb') as f:
+                        knn_clf = pickle.load(f)
+
+                # image_np = face_recognition.load_image_file(img_path)
+                # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                image_np_expanded = np.expand_dims(X_img, axis=0)
+            
+                image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+                
+                # Each box represents a part of the image where a particular object was detected.
+                boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+                # Each score represent how level of confidence for each of the objects.
+                # Score is shown on the result image, together with the class label.
+                scores = detection_graph.get_tensor_by_name('detection_scores:0')
+                classes = detection_graph.get_tensor_by_name('detection_classes:0')
+                num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+                # Actual detection.
+                rects = []
+                (boxes, scores, classes, num_detections) = sess.run(
+                                                                    [boxes, scores, classes, num_detections],
+                                                                    feed_dict={image_tensor: image_np_expanded})
+                im_height, im_width = X_img.shape[:2]
+                person_classes = np.squeeze(classes)
+                final_score = np.squeeze(scores)                                                    
+                for i in range(len(boxes[0])):
+                    if person_classes[i] == 1 and final_score[i] > 0.5:
+                        position = boxes[0][i]
+                        face_bounding_boxes = (int(position[0]*im_height), int(position[3]*im_width), int(position[2]*im_height), int(position[1]*im_width))
+                        # (top, right, bottom, left) = (int(position[0]*im_height), int(position[3]*im_width), int(position[2]*im_height), int(position[1]*im_height))
+                        # (xmin, xmax, ymin, ymax) = (position[1]*im_width, position[3]*im_width,position[0]*im_height, position[2]*im_height)
+                        # cv2.rectangle(X_img,(int(xmin),int(ymin)),(int(xmax),int(ymax)),(0,255,0),2)
+                        X_face_locations = []
+                        X_face_locations.append(face_bounding_boxes)
+                        faces_encodings = face_recognition.face_encodings(X_img,known_face_locations=X_face_locations)
+                        closest_distances = knn_clf.kneighbors(faces_encodings, n_neighbors=4)
+                        are_matches = [closest_distances[0][i][0] <= distance_threshold for i in range(len(X_face_locations))]
+                        predictions = [(pred, loc) if rec else ("unknown", loc) for pred, loc, rec in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches)]
+                        for name, (top, right, bottom, left) in predictions:
+                            if name != "unknow" and detect:
+                                detect = False
+                                detect_delay = 5
+                                
+                            elif name == "unknow":
+                                recount()
+                            cv2.rectangle(X_img,(left, top),(right, bottom),(0,255,0),3)
+                            cv2.rectangle(X_img,(left, bottom - 25),(right, bottom),(0,255,0),3)
+                            cv2.putText(X_img,name,( left + 6, bottom - 8  ) ,cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA )
+                    else:
+                        recount()
+
+                # X_face_locations = face_recognition.face_locations(X_img)
+                # if len(X_face_locations) != 0:
+                #     faces_encodings = face_recognition.face_encodings(X_img,known_face_locations=X_face_locations)
+                #     closest_distances = knn_clf.kneighbors(faces_encodings, n_neighbors=2)
+                #     are_matches = [closest_distances[0][i][0] <= distance_threshold for i in range(len(X_face_locations))]
+                #     predictions = [(pred, loc) if rec else ("unknown", loc) for pred, loc, rec in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches)]
+                #     for name, (top, right, bottom, left) in predictions:
+                #         if name != "unknow" and detect:
+                #             detect = False
+                #             detect_delay = 5
+                #             print("beep")
+                #         elif name == "unknow":
+                #             recount()
+                #         cv2.rectangle(X_img,(left, top),(right, bottom),(0,255,0),3)
+                #         cv2.rectangle(X_img,(left, bottom - 25),(right, bottom),(0,255,0),3)
+                #         cv2.putText(X_img,name,( left + 6, bottom - 8  ) ,cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA )
+                # else:
+                #     recount()
+                cv2.imshow('Display',X_img)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 

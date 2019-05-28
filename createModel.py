@@ -168,8 +168,8 @@ detect = True
 detect_delay = 10
 
 if __name__ == "__main__":
-    video_capture = cv2.VideoCapture("video/8.mp4")
-    # video_capture = cv2.VideoCapture(0)
+    # video_capture = cv2.VideoCapture("video/8.mp4")
+    video_capture = cv2.VideoCapture(0)
     print("Training KNN classifier...")
     classifier = train("data/train", model_save_path="trained_knn_model.clf", n_neighbors=2)
     print("Training complete!")
@@ -242,7 +242,7 @@ if __name__ == "__main__":
                         X_face_locations = []
                         X_face_locations.append(face_bounding_boxes)
                         faces_encodings = face_recognition.face_encodings(X_img,known_face_locations=X_face_locations)
-                        closest_distances = knn_clf.kneighbors(faces_encodings, n_neighbors=4)
+                        closest_distances = knn_clf.kneighbors(faces_encodings, n_neighbors=1)
                         are_matches = [closest_distances[0][i][0] <= distance_threshold for i in range(len(X_face_locations))]
                         predictions = [(pred, loc) if rec else ("unknown", loc) for pred, loc, rec in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches)]
                         for name, (top, right, bottom, left) in predictions:

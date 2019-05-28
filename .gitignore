@@ -8,3 +8,5 @@ video/7.mp4
 faster_rcnn.pb.avi
 ssd_mobilenet_v1_coco.avi
 ssd_mobilenet_v1_coco_11_06_2017/
+Color-Identification-using-Machine-Learning-master/*
+!Color-Identification-using-Machine-Learning-master/Colo.py

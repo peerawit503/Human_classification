@@ -1,5 +1,6 @@
 import numpy as np
-import tkinter as tk
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 import os
 import six.moves.urllib as urllib
 import sys
@@ -8,9 +9,11 @@ from collections import defaultdict
 from io import StringIO
 import cv2
 import argparse
+from collections import Counter
 from centroidtracker import CentroidTracker
 sys.path.append("..")
 from utils import label_map_util
+from skimage.color import rgb2lab, deltaE_cie76
 from utils import visualization_utils as vis_util
 ap = argparse.ArgumentParser()
 ap.add_argument("-o", "--output", type=str,
@@ -28,6 +31,7 @@ NUM_CLASSES = 1
 ct = CentroidTracker()
 writer = None
 cap = cv2.VideoCapture('Video/8.mp4')
+image2 = cv2.imread('black.jpg')
 # cap = cv2.VideoCapture(0)
 image_np = cap.read()
 detection_graph = tf.Graph()
@@ -44,6 +48,30 @@ category_index = label_map_util.create_category_index(categories)
 im_height = 0
 im_width = 0
 tableNo = ''
+def RGB2HEX(color):
+    return "#{:02x}{:02x}{:02x}".format(int(color[0]), int(color[1]), int(color[2]))
+
+def get_colors(image, number_of_colors, show_chart):
+    
+    modified_image = cv2.resize(image, (600, 400), interpolation = cv2.INTER_AREA)
+    modified_image = modified_image.reshape(modified_image.shape[0]*modified_image.shape[1], 3)
+    
+    clf = KMeans(n_clusters = number_of_colors)
+    labels = clf.fit_predict(modified_image)
+    
+    counts = Counter(labels)
+    
+    center_colors = clf.cluster_centers_
+    # We get ordered colors by iterating through the keys
+    ordered_colors = [center_colors[i] for i in counts.keys()]
+    hex_colors = [RGB2HEX(ordered_colors[i]) for i in counts.keys()]
+    rgb_colors = [ordered_colors[i] for i in counts.keys()]
+
+    if (show_chart):
+        plt.figure(figsize = (8, 6))
+        plt.pie(counts.values(), labels = hex_colors, colors = hex_colors)
+    
+    return rgb_colors
 
 with detection_graph.as_default():
     with tf.Session(graph=detection_graph) as sess:
@@ -51,7 +79,8 @@ with detection_graph.as_default():
             ret, image_np = cap.read()
             frame_width = int(cap.get(3))
             frame_height = int(cap.get(4))
-
+            image2 = cv2.imread('black.jpg')
+            image2 = cv2.resize(image2,(30,240))
             # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
             image_np_expanded = np.expand_dims(image_np, axis=0)
            
@@ -80,7 +109,21 @@ with detection_graph.as_default():
                     #get object's bound
                     (xmin, xmax, ymin, ymax) = (position[1]*im_width, position[3]*im_width,position[0]*im_height, position[2]*im_height)
                     if xmax - xmin < frame_width * 0.2:
-                        cv2.rectangle(image_np,(int(xmin),int(ymin)),(int(xmax),int(ymax)),(0,255,0),2)
+                        crop_img = image_np[int(ymin):int(ymax), int(xmin):int(xmax)]
+                        # cv2.rectangle(image_np,(int(xmin),int(ymin)),(int(xmax),int(ymax)),(0,255,0),2)
+                        
+                        colots = get_colors(crop_img, 8, True)
+                        # print(colots)
+                        cv2.rectangle(image2,(0,0),(30,30),(colots[0]),-1)
+                        cv2.rectangle(image2,(0,30),(30,60),(colots[1]),-1)
+                        cv2.rectangle(image2,(0,60),(30,90),(colots[2]),-1)
+                        cv2.rectangle(image2,(0,90),(30,120),(colots[3]),-1)
+                        cv2.rectangle(image2,(0,120),(30,150),(colots[4]),-1)
+                        cv2.rectangle(image2,(0,150),(30,180),(colots[5]),-1)
+                        cv2.rectangle(image2,(0,180),(30,210),(colots[6]),-1)
+                        cv2.rectangle(image2,(0,210),(30,240),(colots[7]),-1)
+                        cv2.imshow('colot',image2)
+                        cv2.imshow("Display1", image_np)
                         box = [int(xmin),int(ymin),int(xmax),int(ymax)]
                         rects.append(box)
                         
@@ -94,7 +137,7 @@ with detection_graph.as_default():
                 cv2.putText(image_np, text, (centroid[0] - 10, centroid[1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.circle(image_np, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
-            cv2.imshow("Display1", image_np)
+            # cv2.imshow("Display1", image_np)
             ank = cv2.waitKey(1) & 0xFF #key pressing detect
             if ank == ord('q') or ank == 27: #Close window
                 cv2.destroyAllWindows()

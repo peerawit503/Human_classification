@@ -113,23 +113,23 @@ def get_colors(image, number_of_colors, show_chart):
 # In[9]:
 
 
-colots = get_colors(get_image('6.jpg'), 8, True)
-cv2.rectangle(image2,(0,0),(30,30),(colots[0]),-1)
-cv2.rectangle(image2,(0,30),(30,60),(colots[1]),-1)
-cv2.rectangle(image2,(0,60),(30,90),(colots[2]),-1)
-cv2.rectangle(image2,(0,90),(30,120),(colots[3]),-1)
-cv2.rectangle(image2,(0,120),(30,150),(colots[4]),-1)
-cv2.rectangle(image2,(0,150),(30,180),(colots[5]),-1)
-cv2.rectangle(image2,(0,180),(30,210),(colots[6]),-1)
-cv2.rectangle(image2,(0,210),(30,240),(colots[7]),-1)
+# colots = get_colors(get_image('6.jpg'), 8, True)
+# cv2.rectangle(image2,(0,0),(30,30),(colots[0]),-1)
+# cv2.rectangle(image2,(0,30),(30,60),(colots[1]),-1)
+# cv2.rectangle(image2,(0,60),(30,90),(colots[2]),-1)
+# cv2.rectangle(image2,(0,90),(30,120),(colots[3]),-1)
+# cv2.rectangle(image2,(0,120),(30,150),(colots[4]),-1)
+# cv2.rectangle(image2,(0,150),(30,180),(colots[5]),-1)
+# cv2.rectangle(image2,(0,180),(30,210),(colots[6]),-1)
+# cv2.rectangle(image2,(0,210),(30,240),(colots[7]),-1)
 
-while True:
-    cv2.imshow('test',image2)
-    ank = cv2.waitKey(1) & 0xFF #key pressing detect
-    if ank == ord('q') or ank == 27: #Close window
-        cv2.destroyAllWindows()
-        # writer.release()
-        break
+# while True:
+#     cv2.imshow('test',image2)
+#     ank = cv2.waitKey(1) & 0xFF #key pressing detect
+#     if ank == ord('q') or ank == 27: #Close window
+#         cv2.destroyAllWindows()
+#         # writer.release()
+#         break
 
 
 
@@ -178,6 +178,7 @@ def match_image_by_color(image, color, threshold = 60, number_of_colors = 10):
     
     image_colors = get_colors(image, number_of_colors, False)
     selected_color = rgb2lab(np.uint8(np.asarray([[color]])))
+    # print(selected_color)
 
     select_image = False
     for i in range(number_of_colors):
@@ -211,27 +212,27 @@ def show_selected_images(images, color, threshold, colors_to_match):
 # In[14]:
 
 
-## Search for GREEN
-#plt.figure(figsize = (20, 10))
-#show_selected_images(images, COLORS['GREEN'], 60, 5)
+# Search for GREEN
+plt.figure(figsize = (20, 10))
+show_selected_images(images, COLORS['GREEN'], 60, 5)
+
+
+# # In[15]:
+
+
+# # Search for BLUE
+# plt.figure(figsize = (20, 10))
+# show_selected_images(images, COLORS['BLUE'], 60, 5)
+
+
+# # In[16]:
+
+
+# # Search for YELLOW
+# plt.figure(figsize = (20, 10))
+# show_selected_images(images, COLORS['YELLOW'], 60, 5)
+
+
+# ## Conclusion
 #
-#
-## In[15]:
-#
-#
-## Search for BLUE
-#plt.figure(figsize = (20, 10))
-#show_selected_images(images, COLORS['BLUE'], 60, 5)
-#
-#
-## In[16]:
-#
-#
-## Search for YELLOW
-#plt.figure(figsize = (20, 10))
-#show_selected_images(images, COLORS['YELLOW'], 60, 5)
-#
-#
-## ## Conclusion
-##
-## In this notebook, we used KMeans to extract majority colors from images. We then used the RGB Values of Colors to identify images from a collection that have that color in them.
+# In this notebook, we used KMeans to extract majority colors from images. We then used the RGB Values of Colors to identify images from a collection that have that color in them.
